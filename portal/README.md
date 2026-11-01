@@ -24,14 +24,15 @@ Open http://localhost:8000. Officers sign in at `/officer.html`, using the `ADMI
 1. Upload the contents of this `portal` folder to a GitHub repository. If you upload the whole
    project instead, set **Root Directory** to `portal` in step 2.
 2. In Vercel, choose **Add New > Project** and import the repository. It detects FastAPI by itself.
-3. In the project, open **Storage** and connect a Postgres database such as Neon, in a Mumbai
+3. In the project, open **Storage** and connect a Postgres database such as Neon, in the Singapore
    region. Check that it added `DATABASE_URL` to the environment variables.
 4. Add `SESSION_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` and the `SMTP_` settings, as explained in `.env.example`.
 5. Redeploy, then open `/api/health`. It should show `"status":"ok"` and `"officer_login_ready":true`.
 6. File a test complaint, answer it from `/officer.html`, and check the reply on the tracking page.
 7. Add an officer using an email address you can open, and check that the code arrives and activates the account.
 
-The app runs in Mumbai (`bom1`, set in `vercel.json`) so it sits close to the database.
+The app runs in Singapore (`sin1`, set in `vercel.json`) so it sits close to the database. Data is
+therefore stored outside India, so check this with the authority before any official use.
 
 ## Adding officers
 
