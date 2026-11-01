@@ -24,7 +24,7 @@ REVIEW_BELOW = 0.6
 HIGH_URGENCY = 70
 HOTSPOT_MIN = 8
 IST = timezone(timedelta(hours=5, minutes=30))
-HEADERS = {"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "same-origin",
+HEADERS = {"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin",
            "Content-Security-Policy": "default-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; "
                                       "style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; "
                                       "form-action 'self'"}

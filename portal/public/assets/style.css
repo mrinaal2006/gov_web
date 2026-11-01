@@ -130,7 +130,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 88px; }
 .flow li { border-top: 3px solid var(--brand); padding-top: 20px; }
 .flow h3 { font-size: 21px; margin: 12px 0 8px; }
 .flow p { margin: 0; color: var(--muted); }
-.num { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--soft); color: var(--brand); font-weight: 700; }
+.flow .num { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--soft); color: var(--brand); font-weight: 700; }
 .topics { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 14px; }
 .topics li { display: flex; gap: 14px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
 .topics svg { flex: none; width: 42px; height: 42px; padding: 9px; border-radius: 10px; background: var(--soft); fill: none; stroke: var(--brand); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

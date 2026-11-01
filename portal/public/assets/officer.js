@@ -61,8 +61,10 @@ async function loadSummary() {
     onkeydown: (e) => { if (e.key === "Enter") openComplaint(c.id); } },
     el("td", { text: when(c.received_at) }), el("td", { class: "clip", text: c.text }), el("td", { text: c.department }),
     el("td", { text: c.village || "Unknown" }), el("td", {}, statusBadge(c.status)))));
+  if (!newest.length) $("#latest").append(el("tr", {}, el("td", { colspan: "5", text: "No complaints yet." })));
   const body = $("#card");
   body.replaceChildren();
+  if (!summaryData.scorecard.length) body.append(el("tr", {}, el("td", { colspan: "6", text: "No complaints in this period." })));
   summaryData.scorecard.forEach((r) => body.append(el("tr", {},
     el("td", { text: r.block }), el("td", { text: r.department }), el("td", { class: "num", text: r.complaints }),
     el("td", { class: "num", text: r.pending }), el("td", { class: "num", text: r.overdue }),
@@ -76,6 +78,7 @@ function drawMap() {
     map = L.map("map").setView([23.95, 87.7], 9);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 16, attribution: "&copy; OpenStreetMap contributors",
+      referrerPolicy: "strict-origin-when-cross-origin", // OpenStreetMap blocks image requests that hide the site
     }).addTo(map);
   }
   map.invalidateSize({ pan: false }); // the map keeps its old size while its tab was hidden
