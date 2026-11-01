@@ -29,3 +29,5 @@ SERVICE_NAME = os.environ.get("SERVICE_NAME", "Samasya Radar")
 OPERATOR_NAME = os.environ.get("OPERATOR_NAME", "").strip()
 OPERATOR_CONTACT = os.environ.get("OPERATOR_CONTACT", "").strip()
 RESPONSE_DAYS = int(os.environ.get("RESPONSE_DAYS", "7"))
+# Per connection. Many people can share one connection, such as a Wi-Fi network or a helpline office.
+COMPLAINTS_PER_HOUR = int(os.environ.get("COMPLAINTS_PER_HOUR", "20"))

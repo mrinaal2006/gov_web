@@ -90,8 +90,22 @@ def test_unknown_village_goes_to_review():
 
 def test_filing_is_rate_limited():
     client = fresh()
-    codes = [client.post("/api/complaints", json=GOOD).status_code for _ in range(6)]
-    assert codes == [201] * 5 + [429]
+    codes = [client.post("/api/complaints", json=GOOD).status_code for _ in range(config.COMPLAINTS_PER_HOUR + 1)]
+    assert codes == [201] * config.COMPLAINTS_PER_HOUR + [429]
+
+
+def test_filing_limit_can_be_changed(monkeypatch):
+    monkeypatch.setattr(config, "COMPLAINTS_PER_HOUR", 2)
+    client = fresh()
+    assert [client.post("/api/complaints", json=GOOD).status_code for _ in range(3)] == [201, 201, 429]
+
+
+def test_hotspot_demo_works_from_one_connection():
+    desk = signed_in()
+    place = {"village": "Lohapur", "text": "Lohapur gram-e 3 din dhore jol ashche na"}
+    for _ in range(8):
+        file_one(desk, **place)
+    assert any(h["village"] == "Lohapur" and h["complaints"] == 8 for h in desk.get("/api/officer/summary").json()["hotspots"])
 
 
 def test_officer_routes_need_sign_in():

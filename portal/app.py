@@ -167,7 +167,7 @@ def file_complaint(body: NewComplaint, request: Request):
     department = max(probabilities, key=probabilities.get)
     confidence = probabilities[department]
     with db.connect() as con:
-        if not db.allow(con, f"file:{client_key(request)}", 5, moment.strftime("%Y%m%d%H")):
+        if not db.allow(con, f"file:{client_key(request)}", config.COMPLAINTS_PER_HOUR, moment.strftime("%Y%m%d%H")):
             con.raw.commit()
             raise HTTPException(429, "Too many complaints from this connection. Please try again in an hour.")
         _, urgency = urgency_for(con, text, probabilities, department, place.get("village"), moment)
