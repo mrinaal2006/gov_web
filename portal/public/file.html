@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report a Problem</title>
+<link rel="icon" type="image/svg+xml" href="/assets/logo.svg">
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/site.js" defer></script>
+</head>
+<body data-page="file">
+<header class="top"><div class="wrap">
+  <a class="brand" href="/index.html"><img class="logo" src="/assets/logo.svg" alt="" width="36" height="36"><span data-service>Samasya Radar</span></a>
+  <nav>
+    <a href="/track.html" data-t="nav_track"></a>
+    <a href="/privacy.html" data-t="nav_privacy"></a>
+    <button class="btn alt small" id="lang" data-t="switch_lang" type="button"></button>
+  </nav>
+</div></header>
+<main><div class="wrap narrow">
+  <section class="panel" id="form-panel">
+    <h1 data-t="file_title"></h1>
+    <p class="note" data-t="emergency"></p>
+    <form id="complaint">
+      <label for="text"><span data-t="text_label"></span><span class="hint" data-t="text_hint"></span></label>
+      <textarea id="text" name="text" required minlength="10" maxlength="2000"></textarea>
+      <label for="village" data-t="village_label"></label>
+      <select id="village" name="village"></select>
+      <label for="name" data-t="name_label"></label>
+      <input type="text" id="name" name="name" maxlength="100" autocomplete="name">
+      <label for="phone"><span data-t="phone_label"></span><span class="hint" data-t="phone_hint"></span></label>
+      <input type="tel" id="phone" name="phone" maxlength="20" autocomplete="tel" inputmode="tel">
+      <div class="trap" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
+      <label class="check"><input type="checkbox" name="consent" required><span><span data-t="consent"></span> <a href="/privacy.html" target="_blank" data-t="nav_privacy"></a></span></label>
+      <div class="error" id="error" role="alert" hidden></div>
+      <button class="btn" id="send" data-t="submit"></button>
+    </form>
+  </section>
+  <section class="panel" id="done-panel" hidden>
+    <h1 data-t="done_title"></h1>
+    <p data-t="done_keep"></p>
+    <div class="ticket" id="ticket"></div>
+    <div class="facts">
+      <div><small data-t="suggested"></small><b id="r-dept"></b></div>
+      <div><small data-t="place"></small><b id="r-place"></b></div>
+      <div><small data-t="target"></small><b id="r-due"></b></div>
+    </div>
+    <p class="note" data-t="done_note"></p>
+    <div class="actions">
+      <a class="btn" id="r-track" href="/track.html" data-t="done_track"></a>
+      <a class="btn alt" href="/file.html" data-t="done_another"></a>
+    </div>
+  </section>
+</div></main>
+<footer><div class="wrap foot-bottom" style="border:0;margin:0;padding-top:0"><span data-copyright></span><span id="operator"></span></div></footer>
+</body>
+</html>

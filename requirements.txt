@@ -1,0 +1,14 @@
+pandas
+numpy
+scikit-learn
+lightgbm
+rapidfuzz
+joblib
+fastapi
+uvicorn
+streamlit
+pydeck
+fpdf2
+transformers
+datasets
+torch

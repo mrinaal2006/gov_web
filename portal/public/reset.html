@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reset Password</title>
+<link rel="icon" type="image/svg+xml" href="/assets/logo.svg">
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/site.js" defer></script>
+</head>
+<body data-page="reset">
+<header class="top"><div class="wrap">
+  <a class="brand" href="/index.html"><img class="logo" src="/assets/logo.svg" alt="" width="36" height="36"><span data-service>Samasya Radar</span></a>
+  <span>Officer desk</span>
+</div></header>
+<main><div class="wrap narrow">
+  <section class="panel" id="ask-panel">
+    <h1>Forgot your password?</h1>
+    <p>Enter your officer email and we will send you a 6-digit reset code.</p>
+    <form id="forgot">
+      <label for="f-email">Email</label>
+      <input type="email" id="f-email" required autocomplete="username">
+      <div class="error" id="f-error" role="alert" hidden></div>
+      <button class="btn" id="f-send" style="margin-top:16px">Send reset code</button>
+    </form>
+    <p style="margin-bottom:0;margin-top:18px"><a href="/officer.html">Back to sign-in</a></p>
+  </section>
+  <section class="panel" id="code-panel" hidden>
+    <h1>Enter your reset code</h1>
+    <p class="note" id="r-note" role="status"></p>
+    <form id="reset">
+      <label for="r-email">Email</label>
+      <input type="email" id="r-email" required autocomplete="username">
+      <label for="r-code">Reset code</label>
+      <input type="text" id="r-code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
+      <label for="r-password">New password<span class="hint">At least 12 characters.</span></label>
+      <div class="reveal">
+        <input type="password" id="r-password" required minlength="12" maxlength="200" autocomplete="new-password">
+        <button class="btn alt small" type="button" data-reveal="r-password" aria-pressed="false" aria-label="Show password">Show</button>
+      </div>
+      <div class="error" id="r-error" role="alert" hidden></div>
+      <div class="actions" style="margin-top:16px">
+        <button class="btn" id="r-send">Change password</button>
+        <button class="btn alt" id="r-again" type="button">Send a new code</button>
+      </div>
+    </form>
+  </section>
+  <section class="panel" id="done-panel" hidden>
+    <h1>Password changed</h1>
+    <p>You can now sign in with your new password. Anywhere you were still signed in has been signed out.</p>
+    <a class="btn" href="/officer.html">Go to sign-in</a>
+  </section>
+</div></main>
+<footer><div class="wrap foot-bottom" style="border:0;margin:0;padding-top:0"><span data-copyright></span><span id="operator"></span></div></footer>
+</body>
+</html>

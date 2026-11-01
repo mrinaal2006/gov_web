@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Officer Desk</title>
+<link rel="icon" type="image/svg+xml" href="/assets/logo.svg">
+<link rel="stylesheet" href="/vendor/leaflet.css">
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/vendor/leaflet.js" defer></script>
+<script src="/vendor/leaflet-heat.js" defer></script>
+<script src="/assets/site.js" defer></script>
+<script src="/assets/officer.js" defer></script>
+</head>
+<body data-page="officer">
+<header class="top"><div class="wrap">
+  <a class="brand" href="/index.html"><img class="logo" src="/assets/logo.svg" alt="" width="36" height="36"><span data-service>Samasya Radar</span></a>
+  <span>Officer desk</span>
+</div></header>
+<main><div class="wrap">
+  <section class="panel narrow" id="login-view" hidden style="margin:0 auto">
+    <h1>Officer sign-in</h1>
+    <form id="login">
+      <label for="email">Email</label>
+      <input type="email" id="email" required autocomplete="username">
+      <label for="password">Password</label>
+      <div class="reveal">
+        <input type="password" id="password" required autocomplete="current-password">
+        <button class="btn alt small" type="button" data-reveal="password" aria-pressed="false" aria-label="Show password">Show</button>
+      </div>
+      <div class="error" id="login-error" role="alert" hidden></div>
+      <button class="btn" style="margin-top:16px">Sign in</button>
+    </form>
+    <p style="margin-bottom:4px;margin-top:18px"><a href="/reset.html">Forgot your password?</a></p>
+    <p style="margin:0">New officer with a verification code? <a href="/activate.html">Activate your account</a></p>
+  </section>
+
+  <div id="desk" hidden>
+    <div class="head" style="margin-bottom:14px">
+      <span id="who"></span>
+      <button class="btn alt small" id="logout" type="button">Sign out</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button data-tab="overview" role="tab" type="button">Overview</button>
+      <button data-tab="queue" role="tab" type="button">Complaints</button>
+      <button data-tab="analyze" role="tab" type="button">Analyze</button>
+      <button data-tab="team" id="tab-team" role="tab" type="button" hidden>Team</button>
+      <button data-tab="account" role="tab" type="button">My account</button>
+    </div>
+
+    <section data-pane="analyze" hidden>
+      <div class="panel">
+        <h2>Analyze a problem</h2>
+        <p>Type any problem in Bengali, English or Banglish to see how it would be scored. This is only a test: nothing is saved.</p>
+        <form id="analyze">
+          <label for="a-text">Problem</label>
+          <textarea id="a-text" required minlength="3" maxlength="2000" style="min-height:110px"></textarea>
+          <div class="error" id="a-error" role="alert" hidden></div>
+          <button class="btn" id="a-run" style="margin-top:14px">Analyze urgency</button>
+        </form>
+      </div>
+      <div class="panel" id="a-result" aria-live="polite" hidden></div>
+    </section>
+
+    <section data-pane="account" hidden>
+      <div class="panel narrow"><h2>Change your password</h2>
+        <form id="change-password">
+          <label for="c-current">Current password</label>
+          <div class="reveal">
+            <input type="password" id="c-current" required maxlength="200" autocomplete="current-password">
+            <button class="btn alt small" type="button" data-reveal="c-current" aria-pressed="false" aria-label="Show password">Show</button>
+          </div>
+          <label for="c-new">New password<span class="hint">At least 12 characters. You stay signed in here, and any other sign-ins are ended.</span></label>
+          <div class="reveal">
+            <input type="password" id="c-new" required minlength="12" maxlength="200" autocomplete="new-password">
+            <button class="btn alt small" type="button" data-reveal="c-new" aria-pressed="false" aria-label="Show password">Show</button>
+          </div>
+          <div class="error" id="c-error" role="alert" hidden></div>
+          <div class="note" id="c-done" role="status" hidden></div>
+          <button class="btn" style="margin-top:16px">Change password</button>
+        </form>
+      </div>
+    </section>
+
+    <section data-pane="overview">
+      <div class="bar">
+        <label>Period
+          <select id="days">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </label>
+      </div>
+      <div class="metrics" id="metrics"></div>
+      <div class="panel"><h2>Latest complaints</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>Received</th><th>Complaint</th><th>Department</th><th>Village</th><th>Status</th></tr></thead>
+          <tbody id="latest"></tbody>
+        </table></div>
+      </div>
+      <div class="panel"><h2>Hotspot alerts</h2><div id="hotspots"></div></div>
+      <div class="panel"><h2>Complaint heat map</h2><div id="map"></div></div>
+      <div class="panel"><h2>Department scorecard</h2>
+        <div class="scroll tall"><table>
+          <thead><tr><th>Block</th><th>Department</th><th class="num">Complaints</th><th class="num">Pending</th><th class="num">Past target</th><th class="num">Avg days to close</th></tr></thead>
+          <tbody id="card"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section data-pane="queue" hidden>
+      <div class="panel">
+        <div class="bar">
+          <label>Show
+            <select id="q-view">
+              <option value="pending">Pending</option>
+              <option value="overdue">Past response target</option>
+              <option value="review">Needs review</option>
+              <option value="closed">Closed</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <label>Department
+            <select id="q-dept"><option value="">All</option></select>
+          </label>
+          <label>Sort by
+            <select id="q-sort">
+              <option value="newest">Newest first</option>
+              <option value="urgency">Highest urgency score first</option>
+            </select>
+          </label>
+        </div>
+        <div class="scroll"><table>
+          <thead><tr><th class="num">Score</th><th>Complaint</th><th>Department</th><th>Village</th><th>Status</th><th>Received</th></tr></thead>
+          <tbody id="queue"></tbody>
+        </table></div>
+        <p id="queue-empty" hidden>Nothing to show here.</p>
+      </div>
+    </section>
+
+    <section data-pane="team" hidden>
+      <div class="panel"><h2>Officers</h2>
+        <div class="scroll"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody id="team"></tbody></table></div>
+        <div class="error" id="remove-error" role="alert" hidden></div>
+      </div>
+      <div class="panel" id="invites-panel" hidden><h2>Waiting for verification</h2>
+        <div class="scroll"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Code valid</th><th></th></tr></thead><tbody id="invites"></tbody></table></div>
+      </div>
+      <div class="panel narrow"><h2>Add an officer</h2>
+        <p>We email them a 6-digit code. They use it to activate the account and choose their own password.</p>
+        <form id="add-officer">
+          <label for="o-name">Name</label><input type="text" id="o-name" name="name" required minlength="2" maxlength="100">
+          <label for="o-email">Email</label><input type="email" id="o-email" name="email" required autocomplete="off">
+          <label for="o-role">Role</label>
+          <select id="o-role" name="role"><option value="officer">Officer</option><option value="admin">Administrator</option></select>
+          <div class="error" id="team-error" role="alert" hidden></div>
+          <div class="note" id="team-done" role="status" hidden></div>
+          <button class="btn" style="margin-top:16px">Send verification code</button>
+        </form>
+      </div>
+    </section>
+  </div>
+  <dialog id="detail"></dialog>
+</div></main>
+<footer><div class="wrap foot-bottom" style="border:0;margin:0;padding-top:0"><span data-copyright></span></div></footer>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.env.local
+*.db
+*.db-journal
+__pycache__/
+.vercel/
+.pytest_cache/

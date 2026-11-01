@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Activate Account</title>
+<link rel="icon" type="image/svg+xml" href="/assets/logo.svg">
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/site.js" defer></script>
+</head>
+<body data-page="activate">
+<header class="top"><div class="wrap">
+  <a class="brand" href="/index.html"><img class="logo" src="/assets/logo.svg" alt="" width="36" height="36"><span data-service>Samasya Radar</span></a>
+  <span>Officer desk</span>
+</div></header>
+<main><div class="wrap narrow">
+  <section class="panel" id="form-panel">
+    <h1>Activate your officer account</h1>
+    <p>Enter the 6-digit code sent to your email, then choose a password.</p>
+    <form id="activate">
+      <label for="a-email">Email</label>
+      <input type="email" id="a-email" required autocomplete="username">
+      <label for="a-code">Verification code</label>
+      <input type="text" id="a-code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
+      <label for="a-password">New password<span class="hint">At least 12 characters.</span></label>
+      <div class="reveal">
+        <input type="password" id="a-password" required minlength="12" maxlength="200" autocomplete="new-password">
+        <button class="btn alt small" type="button" data-reveal="a-password" aria-pressed="false" aria-label="Show password">Show</button>
+      </div>
+      <div class="error" id="error" role="alert" hidden></div>
+      <button class="btn" id="a-send" style="margin-top:16px">Activate account</button>
+    </form>
+  </section>
+  <section class="panel" id="done-panel" hidden>
+    <h1>Account activated</h1>
+    <p>You can now sign in with your email and new password.</p>
+    <a class="btn" href="/officer.html">Go to sign-in</a>
+  </section>
+</div></main>
+<footer><div class="wrap foot-bottom" style="border:0;margin:0;padding-top:0"><span data-copyright></span><span id="operator"></span></div></footer>
+</body>
+</html>

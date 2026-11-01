@@ -1,0 +1,3 @@
+fastapi
+rapidfuzz
+psycopg[binary]
