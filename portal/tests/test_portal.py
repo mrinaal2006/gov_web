@@ -582,6 +582,13 @@ def test_removed_admin_is_not_recreated_on_restart():
         assert con.one("select email from officers where email = ?", (LOGIN["email"],))
 
 
+def test_health_reports_missing_database(monkeypatch):
+    monkeypatch.setattr(config, "ON_VERCEL", True)
+    monkeypatch.setattr(config, "DATABASE_URL", "")
+    r = fresh().get("/api/health")
+    assert r.status_code == 503 and r.json()["status"] == "database_url_missing"
+
+
 def test_vercel_without_database_fails_clearly(monkeypatch):
     from server import db
     monkeypatch.setattr(config, "ON_VERCEL", True)

@@ -128,6 +128,9 @@ def add_event(con, complaint_id, kind, status=None, public_message=None, interna
 
 @app.get("/api/health")
 def health():
+    if config.ON_VERCEL and not config.DATABASE_URL:
+        return JSONResponse({"status": "database_url_missing", "officer_login_ready": security.configured()},
+                            status_code=503)
     with db.connect() as con:
         con.one("select 1 as ok")
     return {"status": "ok", "officer_login_ready": security.configured()}
