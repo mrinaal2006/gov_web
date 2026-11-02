@@ -277,6 +277,44 @@ document.addEventListener("DOMContentLoaded", () => {
     location.reload();
   });
   document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => openTab(b.dataset.tab)));
+  $("#r-period").addEventListener("change", () => {
+    const custom = $("#r-period").value === "custom";
+    $("#r-custom-box").hidden = !custom;
+    $("#r-custom").required = custom;
+  });
+  $("#report").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const error = $("#r-error");
+    const done = $("#r-done");
+    const button = $("#r-download");
+    const period = $("#r-period").value;
+    const days = period === "custom" ? $("#r-custom").value : period;
+    error.hidden = true;
+    done.hidden = true;
+    button.disabled = true;
+    button.textContent = "Preparing...";
+    try {
+      const response = await fetch(`/api/officer/report.pdf?days=${encodeURIComponent(days)}`, { credentials: "same-origin" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(typeof data.detail === "string" ? data.detail : "Please choose a whole number of days from 1 to 365.");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const name = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") || "");
+      const link = el("a", { href: url, download: name ? name[1] : "samasya-radar-report.pdf" });
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      done.textContent = `Your report for the last ${days} day${days === "1" ? "" : "s"} has been downloaded.`;
+      done.hidden = false;
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    }
+    button.disabled = false;
+    button.textContent = "Download PDF";
+  });
   $("#analyze").addEventListener("submit", async (event) => {
     event.preventDefault();
     const error = $("#a-error");

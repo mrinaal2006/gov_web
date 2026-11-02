@@ -22,6 +22,7 @@ CODE_MINUTES = 30
 CODE_ATTEMPTS = 5
 REVIEW_BELOW = 0.6
 HIGH_URGENCY = 70
+MAX_REPORT_DAYS = 365
 HOTSPOT_MIN = 8
 IST = timezone(timedelta(hours=5, minutes=30))
 HEADERS = {"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -422,6 +423,22 @@ def summary(days: int = 30, user=Depends(officer)):
     scorecard.sort(key=lambda e: (-e["overdue"], -e["pending"], e["block"]))
     return {"totals": {k: v or 0 for k, v in totals.items()}, "hotspots": hotspots, "points": points,
             "scorecard": scorecard, "departments": department_list(), "server_time": text_now}
+
+
+@app.get("/api/officer/report.pdf")
+def report_pdf(days: int = 30, user=Depends(officer)):
+    if not 1 <= days <= MAX_REPORT_DAYS:
+        raise HTTPException(400, f"Please choose between 1 and {MAX_REPORT_DAYS} days.")
+    from server import report  # only this route needs the PDF library
+
+    moment = now()
+    with db.connect() as con:
+        rows = con.rows("select id, received_at, due_at, resolved_at, block, village, department, urgency, status "
+                        "from complaints where received_at >= ? order by received_at",
+                        (iso(moment - timedelta(days=days)),))
+    pdf = report.build(rows, days, moment, config.SERVICE_NAME, config.OPERATOR_NAME or None)
+    name = f"samasya-radar-report-last-{days}-days-{moment.astimezone(IST).strftime('%Y-%m-%d')}.pdf"
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 @app.get("/api/officer/complaints")

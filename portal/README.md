@@ -43,6 +43,12 @@ exists after that.
 Without `SMTP_HOST`, a local run shows the code on screen for testing and sends nothing. On Vercel, adding
 an officer is refused until email is set up.
 
+## Reports
+
+Signed-in officers use the **Reports** tab to download a PDF covering any 1 to 365 days. It has totals, departments,
+hotspots across the whole period, the most urgent pending complaints and the scorecard. It is in English and
+contains no complaint text, names or phone numbers.
+
 ## Urgency scores
 
 With `GEMINI_API_KEY` set, Gemini scores each complaint and gives a one-line reason that only officers see.

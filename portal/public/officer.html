@@ -45,6 +45,7 @@
       <button data-tab="overview" role="tab" type="button">Overview</button>
       <button data-tab="queue" role="tab" type="button">Complaints</button>
       <button data-tab="analyze" role="tab" type="button">Analyze</button>
+      <button data-tab="reports" role="tab" type="button">Reports</button>
       <button data-tab="team" id="tab-team" role="tab" type="button" hidden>Team</button>
       <button data-tab="account" role="tab" type="button">My account</button>
     </div>
@@ -63,6 +64,29 @@
         </form>
       </div>
       <div class="panel" id="a-result" aria-live="polite" hidden></div>
+    </section>
+
+    <section data-pane="reports" hidden>
+      <div class="panel narrow">
+        <h2>Download a report</h2>
+        <p>Choose how many days the report should cover. It includes totals, departments, hotspots, the most urgent pending complaints and the scorecard. It contains no complaint text, names or phone numbers.</p>
+        <form id="report">
+          <label for="r-period">Period</label>
+          <select id="r-period">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="custom">Choose a number of days</option>
+          </select>
+          <div id="r-custom-box" hidden>
+            <label for="r-custom">Number of days<span class="hint">From 1 to 365.</span></label>
+            <input type="number" id="r-custom" min="1" max="365" step="1" inputmode="numeric" style="width:100%;font:inherit;padding:10px 12px;border:1px solid #9aa6a1;border-radius:7px">
+          </div>
+          <div class="error" id="r-error" role="alert" hidden></div>
+          <div class="note" id="r-done" role="status" hidden></div>
+          <button class="btn" id="r-download" style="margin-top:16px">Download PDF</button>
+        </form>
+      </div>
     </section>
 
     <section data-pane="account" hidden>
