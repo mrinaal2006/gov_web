@@ -520,6 +520,12 @@ def test_analyze_handles_unmatched_and_bad_text():
     desk = signed_in()
     data = desk.post("/api/officer/analyze", json={"text": "something is wrong"}).json()
     assert data["village"] is None and data["needs_review"] is True and data["similar_7d"] == 0
+    assert "no listed village was recognised" in data["review_reasons"]
+    chosen = desk.post("/api/officer/analyze", json={"text": "No drinking water supply for 3 days", "village": "Surul"}).json()
+    assert chosen["village"] == "Surul" and chosen["block"] == "Bolpur Sriniketan"
+    assert "no listed village was recognised" not in chosen["review_reasons"]
+    unknown = desk.post("/api/officer/analyze", json={"text": "something is wrong", "village": "Not a village"}).json()
+    assert unknown["village"] is None
     assert desk.post("/api/officer/analyze", json={"text": "x"}).status_code == 422
     assert desk.post("/api/officer/analyze", json={"text": "y" * 2001}).status_code == 422
 

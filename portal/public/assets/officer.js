@@ -9,6 +9,9 @@ function show(id, on) { $(id).hidden = !on; }
 
 async function start() {
   await loadConfig();
+  [...siteConfig.villages].sort((a, b) => a.village.localeCompare(b.village)).forEach((v) => {
+    $("#a-village").append(el("option", { value: v.village, text: `${v.village} (${v.block})` }));
+  });
   try {
     currentUser = await api("/api/officer/me");
     enter();
@@ -185,7 +188,7 @@ function drawAnalysis(r) {
     el("li", { text: r.serious_words.length ? `Serious words found: ${r.serious_words.join(", ")}` : "No words from the serious-word list" }),
     el("li", { text: r.village
       ? `${r.similar_7d} similar ${r.department} complaint${r.similar_7d === 1 ? "" : "s"} from ${r.village} in the last 7 days`
-      : "No village recognised, so similar complaints could not be counted" }),
+      : "No village recognised, so similar complaints could not be counted. Name a listed village in the text, or choose one above" }),
     el("li", { text: "Text length and the current time of day also affect the score" }));
   $("#a-result").replaceChildren(
     el("div", { class: "head" }, el("h2", { text: "Result" }),
@@ -196,7 +199,7 @@ function drawAnalysis(r) {
       fact("Department", `${r.department} (${percent(r.confidence)})`),
       fact("Other possibilities", r.departments.slice(1).map((d) => `${d.name} ${percent(d.probability)}`).join(", ")),
       fact("Village", r.village ? `${r.village}, ${r.block}` : "Not recognised")),
-    r.needs_review ? el("div", { class: "error", text: "A real complaint like this would be flagged for review, because the department is uncertain or no village was recognised." }) : "",
+    r.needs_review ? el("p", { class: "alert", style: "margin:14px 0", text: `An officer would need to review a complaint like this: ${r.review_reasons.join(", and ")}.` }) : "",
     el("h3", { text: "What influenced the score", style: "margin-top:16px" }), reasons,
     el("p", { class: "note", text: "The score is a rough guide from a model trained on simulated complaints. Use your own judgement." }));
   $("#a-result").hidden = false;
@@ -275,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
     error.hidden = true;
     button.disabled = true;
     try {
-      drawAnalysis(await api("/api/officer/analyze", { body: { text: $("#a-text").value } }));
+      drawAnalysis(await api("/api/officer/analyze", { body: { text: $("#a-text").value, village: $("#a-village").value || null } }));
     } catch (err) {
       error.textContent = err.message;
       error.hidden = false;

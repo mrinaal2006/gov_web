@@ -56,6 +56,8 @@
         <form id="analyze">
           <label for="a-text">Problem</label>
           <textarea id="a-text" required minlength="3" maxlength="2000" style="min-height:110px"></textarea>
+          <label for="a-village">Village<span class="hint">Leave this as it is to find the village from the text.</span></label>
+          <select id="a-village"><option value="">Find from the text</option></select>
           <div class="error" id="a-error" role="alert" hidden></div>
           <button class="btn" id="a-run" style="margin-top:14px">Analyze urgency</button>
         </form>

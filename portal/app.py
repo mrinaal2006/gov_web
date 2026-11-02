@@ -82,6 +82,7 @@ class NewOfficer(BaseModel):
 
 class Analyze(BaseModel):
     text: str = Field(min_length=3, max_length=2000)
+    village: Optional[str] = Field(default=None, max_length=100)
 
 
 class ChangePassword(BaseModel):
@@ -347,12 +348,18 @@ def analyze(body: Analyze, user=Depends(officer)):
     text = nlp.clean(body.text)
     probabilities = nlp.department_probabilities(text)
     department = max(probabilities, key=probabilities.get)
-    place = nlp.find_place(text) or {}
+    chosen = next((v for v in nlp.villages() if v["village"] == body.village), None)
+    place = chosen or nlp.find_place(text) or {}
     with db.connect() as con:
         repeat, urgency = urgency_for(con, text, probabilities, department, place.get("village"), now())
+    reasons = []
+    if not place:
+        reasons.append("no listed village was recognised")
+    if probabilities[department] < REVIEW_BELOW:
+        reasons.append("the department suggestion is below 60% confidence")
     ranked = sorted(probabilities.items(), key=lambda item: -item[1])[:3]
     return {"text": text, "urgency": urgency, "high": urgency >= HIGH_URGENCY, "department": department,
-            "confidence": probabilities[department], "needs_review": probabilities[department] < REVIEW_BELOW or not place,
+            "confidence": probabilities[department], "needs_review": bool(reasons), "review_reasons": reasons,
             "departments": [{"name": n, "probability": p} for n, p in ranked],
             "village": place.get("village"), "block": place.get("block"), "language": nlp.detect_language(text),
             "serious_words": nlp.severe_words(text), "similar_7d": repeat}
