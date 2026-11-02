@@ -89,11 +89,11 @@ class ReportPDF(FPDF):
         self.cell(0, 5, f"Page {self.page_no()} of {{nb}}", align="R")
 
 
-def build(rows, days, now, service="Samasya Radar", operator=None):
+def build(rows, period, now, service="Samasya Radar", operator=None):
     total, departments, cards, high, closed = summarise(rows, now)
     pdf = ReportPDF(format="A4")
     pdf.service = service
-    pdf.set_title(f"{service} report: last {days} days")
+    pdf.set_title(f"{service} report: {period}")
     pdf.set_auto_page_break(True, margin=18)
     pdf.set_margins(16, 16, 16)
     pdf.add_page()
@@ -108,8 +108,7 @@ def build(rows, days, now, service="Samasya Radar", operator=None):
     pdf.cell(0, 10, safe(f"{service} report"))
     pdf.set_xy(22, 32)
     pdf.set_font("Helvetica", size=11)
-    label = "day" if days == 1 else "days"
-    pdf.cell(0, 7, safe(f"Last {days} {label}: {day(now - timedelta(days=days))} to {day(now)}"))
+    pdf.cell(0, 7, safe(period))
     pdf.set_text_color(24, 33, 31)
     pdf.set_xy(16, 50)
     pdf.set_font("Helvetica", size=9)

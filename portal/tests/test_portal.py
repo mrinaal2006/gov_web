@@ -703,8 +703,77 @@ def test_hotspot_check_uses_a_48_hour_window():
 def test_empty_report_still_builds():
     from datetime import datetime, timezone
     from server import report
-    pdf = report.build([], 1, datetime(2026, 1, 1, tzinfo=timezone.utc), "Samasya Radar সার্ভিস", None)
+    pdf = report.build([], "Last 1 day", datetime(2026, 1, 1, tzinfo=timezone.utc), "Samasya Radar সার্ভিস", None)
     assert pdf.startswith(b"%PDF")
+
+
+def place_at(complaint_id, when):
+    """Moves a complaint to an exact time, given in UTC."""
+    from server import db
+    with db.connect() as con:
+        con.run("update complaints set received_at = ?, due_at = ? where id = ?", (when, "2099-01-01T00:00:00Z", complaint_id))
+
+
+def count_between(client, start, end):
+    r = client.get(f"/api/officer/summary?start={start}&end={end}")
+    assert r.status_code == 200, r.text
+    return r.json()["totals"]["complaints"]
+
+
+def test_custom_dates_follow_india_time_and_include_the_whole_last_day():
+    clear_complaints()
+    desk = signed_in()
+    # 15 Oct 11:30 pm in India is 18:00 UTC. 16 Oct 12:10 am in India is 18:40 UTC.
+    late = file_one(desk)
+    early_next = file_one(desk)
+    place_at(late["id"], "2025-10-15T18:00:00Z")
+    place_at(early_next["id"], "2025-10-15T18:40:00Z")
+    assert count_between(desk, "2025-10-15", "2025-10-15") == 1
+    assert count_between(desk, "2025-10-16", "2025-10-16") == 1
+    assert count_between(desk, "2025-10-15", "2025-10-16") == 2
+    assert count_between(desk, "2025-10-17", "2025-10-20") == 0
+
+
+def test_custom_dates_limit_map_scorecard_and_report():
+    clear_complaints()
+    desk = signed_in()
+    inside = file_one(desk, text="Karamji gram-e 3 din dhore jol ashche na", village="Karamji")
+    outside = file_one(desk, text="Kamarkhur gram-e 3 din dhore jol ashche na", village="Kamarkhur")
+    place_at(inside["id"], "2025-10-10T06:00:00Z")
+    place_at(outside["id"], "2025-09-10T06:00:00Z")
+    data = desk.get("/api/officer/summary?start=2025-10-01&end=2025-10-15").json()
+    assert data["period"] == "01 Oct 2025 to 15 Oct 2025"
+    assert data["totals"]["complaints"] == 1 and len(data["points"]) == 1
+    assert [r["block"] for r in data["scorecard"]] == ["Murarai - II"] and data["scorecard"][0]["complaints"] == 1
+    import io
+    pypdf = pytest.importorskip("pypdf")
+    r = desk.get("/api/officer/report.pdf?start=2025-10-01&end=2025-10-15")
+    assert r.status_code == 200 and "2025-10-01-to-2025-10-15" in r.headers["content-disposition"]
+    text = "\n".join(p.extract_text() for p in pypdf.PdfReader(io.BytesIO(r.content)).pages)
+    assert "01 Oct 2025 to 15 Oct 2025" in text and inside["id"] in text and outside["id"] not in text
+
+
+@pytest.mark.parametrize("query", [
+    "start=2025-10-15", "end=2025-10-15", "start=2025-10-15&end=2025-10-01", "start=2099-01-01&end=2099-01-02",
+    "start=2025-13-01&end=2025-13-02", "start=rubbish&end=rubbish", "start=2020-01-01&end=2025-01-01",
+    "start=2025-02-30&end=2025-03-01"])
+def test_bad_custom_dates_are_refused(query):
+    desk = signed_in()
+    for path in ["summary", "report.pdf"]:
+        r = desk.get(f"/api/officer/{path}?{query}")
+        assert r.status_code == 400 and isinstance(r.json()["detail"], str)
+
+
+def test_a_full_365_day_range_is_allowed():
+    assert signed_in().get("/api/officer/summary?start=2025-01-01&end=2025-12-31").status_code == 200
+
+
+def test_summary_rejects_a_bad_number_of_days():
+    assert signed_in().get("/api/officer/summary?days=0").status_code == 400
+
+
+def test_custom_dates_need_sign_in():
+    assert fresh().get("/api/officer/summary?start=2025-01-01&end=2025-01-02").status_code == 401
 
 
 def test_only_admin_manages_team():

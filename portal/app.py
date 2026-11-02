@@ -1,7 +1,7 @@
 import re
 import smtplib
 import uuid
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import quote
 
@@ -379,10 +379,39 @@ def analyze(body: Analyze, user=Depends(officer)):
             "serious_words": nlp.severe_words(text), "similar_7d": repeat}
 
 
+def utc_text(moment):
+    return iso(moment.astimezone(timezone.utc))
+
+
+def resolve_period(days, start, end, moment):
+    """Turns a number of days, or India-time From and To dates, into (since, until, label, file name part)."""
+    if not start and not end:
+        if not 1 <= days <= MAX_REPORT_DAYS:
+            raise HTTPException(400, f"Please choose between 1 and {MAX_REPORT_DAYS} days.")
+        first = (moment - timedelta(days=days)).astimezone(IST)
+        label = f"Last {days} day{'' if days == 1 else 's'}: {first:%d %b %Y} to {moment.astimezone(IST):%d %b %Y}"
+        return utc_text(moment - timedelta(days=days)), utc_text(moment + timedelta(days=1)), label, f"last-{days}-days"
+    if not start or not end:
+        raise HTTPException(400, "Please choose both a From date and a To date.")
+    try:
+        first, last = datetime.strptime(start, "%Y-%m-%d"), datetime.strptime(end, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(400, "Please choose valid dates.") from None
+    if first > last:
+        raise HTTPException(400, "The From date must be on or before the To date.")
+    if last.date() > moment.astimezone(IST).date():
+        raise HTTPException(400, "The To date cannot be in the future.")
+    if (last - first).days + 1 > MAX_REPORT_DAYS:
+        raise HTTPException(400, f"Please choose a period of {MAX_REPORT_DAYS} days or fewer.")
+    since = first.replace(tzinfo=IST)
+    until = last.replace(tzinfo=IST) + timedelta(days=1)  # complaints before midnight after the To date
+    return utc_text(since), utc_text(until), f"{first:%d %b %Y} to {last:%d %b %Y}", f"{start}-to-{end}"
+
+
 @app.get("/api/officer/summary")
-def summary(days: int = 30, user=Depends(officer)):
+def summary(days: int = 30, start: Optional[str] = None, end: Optional[str] = None, user=Depends(officer)):
     moment = now()
-    since = iso(moment - timedelta(days=max(1, min(days, 365))))
+    since, until, label, _ = resolve_period(days, start, end, moment)
     text_now = iso(moment)
     open_states = "('received', 'in_progress')"
     with db.connect() as con:
@@ -392,16 +421,16 @@ def summary(days: int = 30, user=Depends(officer)):
                 sum(case when status in {open_states} and due_at < ? then 1 else 0 end) as overdue,
                 sum(case when status in {open_states} and urgency >= 70 then 1 else 0 end) as high_urgency,
                 sum(case when status in {open_states} and needs_review = 1 then 1 else 0 end) as needs_review
-                from complaints where received_at >= ?""", (text_now, since))
+                from complaints where received_at >= ? and received_at < ?""", (text_now, since, until))
         hotspots = con.rows(
             "select village, block, department, count(*) as complaints, max(received_at) as latest, "
             "max(lat) as lat, max(lon) as lon from complaints where received_at >= ? and village is not null "
             f"group by village, block, department having count(*) >= {HOTSPOT_MIN} order by complaints desc",
             (iso(moment - timedelta(hours=48)),))
-        points = con.rows("select lat, lon, urgency from complaints where received_at >= ? and lat is not null "
-                          "order by received_at desc limit 3000", (since,))
+        points = con.rows("select lat, lon, urgency from complaints where received_at >= ? and received_at < ? "
+                          "and lat is not null order by received_at desc limit 3000", (since, until))
         finished = con.rows("select block, department, received_at, resolved_at, status, urgency, due_at "
-                            "from complaints where received_at >= ? and block is not null", (since,))
+                            "from complaints where received_at >= ? and received_at < ? and block is not null", (since, until))
     card = {}
     for row in finished:
         entry = card.setdefault((row["block"], row["department"]),
@@ -421,23 +450,21 @@ def summary(days: int = 30, user=Depends(officer)):
         entry["avg_days"] = round(sum(taken) / len(taken), 1) if taken else None
         scorecard.append(entry)
     scorecard.sort(key=lambda e: (-e["overdue"], -e["pending"], e["block"]))
-    return {"totals": {k: v or 0 for k, v in totals.items()}, "hotspots": hotspots, "points": points,
+    return {"period": label, "totals": {k: v or 0 for k, v in totals.items()}, "hotspots": hotspots, "points": points,
             "scorecard": scorecard, "departments": department_list(), "server_time": text_now}
 
 
 @app.get("/api/officer/report.pdf")
-def report_pdf(days: int = 30, user=Depends(officer)):
-    if not 1 <= days <= MAX_REPORT_DAYS:
-        raise HTTPException(400, f"Please choose between 1 and {MAX_REPORT_DAYS} days.")
+def report_pdf(days: int = 30, start: Optional[str] = None, end: Optional[str] = None, user=Depends(officer)):
+    moment = now()
+    since, until, label, part = resolve_period(days, start, end, moment)
     from server import report  # only this route needs the PDF library
 
-    moment = now()
     with db.connect() as con:
         rows = con.rows("select id, received_at, due_at, resolved_at, block, village, department, urgency, status "
-                        "from complaints where received_at >= ? order by received_at",
-                        (iso(moment - timedelta(days=days)),))
-    pdf = report.build(rows, days, moment, config.SERVICE_NAME, config.OPERATOR_NAME or None)
-    name = f"samasya-radar-report-last-{days}-days-{moment.astimezone(IST).strftime('%Y-%m-%d')}.pdf"
+                        "from complaints where received_at >= ? and received_at < ? order by received_at", (since, until))
+    pdf = report.build(rows, label, moment, config.SERVICE_NAME, config.OPERATOR_NAME or None)
+    name = f"samasya-radar-report-{part}.pdf" if start else f"samasya-radar-report-{part}-{moment.astimezone(IST).strftime('%Y-%m-%d')}.pdf"
     return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 

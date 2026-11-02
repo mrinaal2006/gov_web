@@ -45,7 +45,8 @@ an officer is refused until email is set up.
 
 ## Reports
 
-Signed-in officers use the **Reports** tab to download a PDF covering any 1 to 365 days. It has totals, departments,
+Signed-in officers use the **Reports** tab to download a PDF covering any 1 to 365 days, or custom From and To
+dates in India time. Overview offers the same custom dates. The report has totals, departments,
 hotspots across the whole period, the most urgent pending complaints and the scorecard. It is in English and
 contains no complaint text, names or phone numbers.
 

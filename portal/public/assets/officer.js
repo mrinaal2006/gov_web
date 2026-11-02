@@ -41,8 +41,15 @@ function openTab(name) {
   if (name === "team") loadTeam();
 }
 
+function periodQuery(choice, from, to) {
+  if (choice !== "dates") return new URLSearchParams({ days: choice });
+  return new URLSearchParams({ start: from, end: to });
+}
+
 async function loadSummary() {
-  summaryData = await api(`/api/officer/summary?days=${$("#days").value}`);
+  const choice = $("#days").value;
+  if (choice === "dates" && (!$("#o-from").value || !$("#o-to").value)) return; // waiting for both dates
+  summaryData = await api(`/api/officer/summary?${periodQuery(choice, $("#o-from").value, $("#o-to").value)}`);
   const s = summaryData.totals;
   const metric = (label, value, bad) => el("div", { class: `metric${bad && value ? " bad" : ""}` }, el("small", { text: label }), el("b", { text: String(value) }));
   $("#metrics").replaceChildren(
@@ -279,8 +286,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => openTab(b.dataset.tab)));
   $("#r-period").addEventListener("change", () => {
     const custom = $("#r-period").value === "custom";
+    const dates = $("#r-period").value === "dates";
     $("#r-custom-box").hidden = !custom;
     $("#r-custom").required = custom;
+    $("#r-dates-box").hidden = !dates;
+    $("#r-from").required = dates;
+    $("#r-to").required = dates;
   });
   $("#report").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -288,13 +299,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const done = $("#r-done");
     const button = $("#r-download");
     const period = $("#r-period").value;
-    const days = period === "custom" ? $("#r-custom").value : period;
+    const query = periodQuery(period === "custom" ? $("#r-custom").value : period, $("#r-from").value, $("#r-to").value);
     error.hidden = true;
     done.hidden = true;
     button.disabled = true;
     button.textContent = "Preparing...";
     try {
-      const response = await fetch(`/api/officer/report.pdf?days=${encodeURIComponent(days)}`, { credentials: "same-origin" });
+      const response = await fetch(`/api/officer/report.pdf?${query}`, { credentials: "same-origin" });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(typeof data.detail === "string" ? data.detail : "Please choose a whole number of days from 1 to 365.");
@@ -306,7 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
-      done.textContent = `Your report for the last ${days} day${days === "1" ? "" : "s"} has been downloaded.`;
+      done.textContent = "Your report has been downloaded.";
       done.hidden = false;
     } catch (err) {
       error.textContent = err.message;
@@ -346,7 +357,20 @@ document.addEventListener("DOMContentLoaded", () => {
       error.hidden = false;
     }
   });
-  $("#days").addEventListener("change", loadSummary);
+  const today = new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10); // India date
+  ["#o-from", "#o-to", "#r-from", "#r-to"].forEach((id) => { $(id).max = today; });
+  const refreshPeriod = async () => {
+    const error = $("#o-error");
+    error.hidden = true;
+    document.querySelectorAll("[data-range]").forEach((box) => { box.hidden = $("#days").value !== "dates"; });
+    try {
+      await loadSummary();
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    }
+  };
+  ["#days", "#o-from", "#o-to"].forEach((id) => $(id).addEventListener("change", refreshPeriod));
   $("#q-view").addEventListener("change", loadQueue);
   $("#q-dept").addEventListener("change", loadQueue);
   $("#q-sort").addEventListener("change", loadQueue);
