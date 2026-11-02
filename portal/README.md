@@ -43,6 +43,14 @@ exists after that.
 Without `SMTP_HOST`, a local run shows the code on screen for testing and sends nothing. On Vercel, adding
 an officer is refused until email is set up.
 
+## Urgency scores
+
+With `GEMINI_API_KEY` set, Gemini scores each complaint and gives a one-line reason that only officers see.
+If there is no key, or a request fails or returns an unusable answer, the local model scores it instead and
+the Analyze tab says so. Complaint text goes to Google with phone and Aadhaar numbers hidden, but other
+details people type do not get hidden, so check Google's data terms and get approval before real use. Gemini
+scores have not been tested on real complaints.
+
 ## Changing a password
 
 Signed-in officers use the **My account** tab, entering their current password and a new one of at least

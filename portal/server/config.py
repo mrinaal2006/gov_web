@@ -24,6 +24,10 @@ SMTP_USER = os.environ.get("SMTP_USER", "").strip()
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_FROM = os.environ.get("SMTP_FROM", "").strip()
 
+# Scores urgency when set. Without it, or if a request fails, the local model is used.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest").strip()
+
 SERVICE_NAME = os.environ.get("SERVICE_NAME", "Samasya Radar")
 # Whoever runs the site, shown in the footer
 OPERATOR_NAME = os.environ.get("OPERATOR_NAME", "").strip()

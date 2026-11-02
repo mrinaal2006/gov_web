@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from server import config, db, mailer, nlp, security
+from server import config, db, gemini, mailer, nlp, security
 from server.db import iso, now
 
 app = FastAPI(title="Samasya Radar Portal", docs_url=None, redoc_url=None, openapi_url=None)
@@ -100,11 +100,17 @@ class Activation(BaseModel):
     password: str = Field(max_length=200)
 
 
-def urgency_for(con, text, probabilities, department, village, moment):
-    """Returns how many similar complaints came in the last 7 days, and the urgency score."""
-    repeat = con.one("select count(*) as n from complaints where village = ? and department = ? "
-                     "and received_at >= ?", (village, department, iso(moment - timedelta(days=7))))["n"]
-    return repeat, round(nlp.urgency_score(text, probabilities, repeat, moment.astimezone(IST).hour) * 100)
+def similar_count(con, department, village, moment):
+    return con.one("select count(*) as n from complaints where village = ? and department = ? "
+                   "and received_at >= ?", (village, department, iso(moment - timedelta(days=7))))["n"]
+
+
+def assess_urgency(text, probabilities, department, village, repeat, moment):
+    """Returns the score, where it came from, and Gemini's reason. Call outside a database connection: it can wait on Gemini."""
+    answer = gemini.score(text, department, village, repeat)
+    if answer:
+        return answer["score"], "gemini", answer["reason"]
+    return round(nlp.urgency_score(text, probabilities, repeat, moment.astimezone(IST).hour) * 100), "local", None
 
 
 def check_code(con, table, email, code, moment):
@@ -174,7 +180,9 @@ def file_complaint(body: NewComplaint, request: Request):
         if not db.allow(con, f"file:{client_key(request)}", config.COMPLAINTS_PER_HOUR, moment.strftime("%Y%m%d%H")):
             con.raw.commit()
             raise HTTPException(429, "Too many complaints from this connection. Please try again in an hour.")
-        _, urgency = urgency_for(con, text, probabilities, department, place.get("village"), moment)
+        repeat = similar_count(con, department, place.get("village"), moment)
+    urgency, source, reason = assess_urgency(text, probabilities, department, place.get("village"), repeat, moment)
+    with db.connect() as con:
         complaint_id = security.tracking_id()
         due = moment + timedelta(days=config.RESPONSE_DAYS)
         con.run("insert into complaints (id, text, language, channel, received_at, due_at, district, block, village, "
@@ -186,6 +194,8 @@ def file_complaint(body: NewComplaint, request: Request):
                  confidence, urgency, int(confidence < REVIEW_BELOW or not place),
                  (body.contact_name or "").strip() or None, phone, iso(moment)))
         add_event(con, complaint_id, "created", status="received")
+        if reason:
+            add_event(con, complaint_id, "urgency", internal_note=reason)
     return {"id": complaint_id, "department": department, "village": place.get("village"),
             "received_at": iso(moment), "due_at": iso(due)}
 
@@ -350,15 +360,18 @@ def analyze(body: Analyze, user=Depends(officer)):
     department = max(probabilities, key=probabilities.get)
     chosen = next((v for v in nlp.villages() if v["village"] == body.village), None)
     place = chosen or nlp.find_place(text) or {}
+    moment = now()
     with db.connect() as con:
-        repeat, urgency = urgency_for(con, text, probabilities, department, place.get("village"), now())
+        repeat = similar_count(con, department, place.get("village"), moment)
+    urgency, source, why = assess_urgency(text, probabilities, department, place.get("village"), repeat, moment)
     reasons = []
     if not place:
         reasons.append("no listed village was recognised")
     if probabilities[department] < REVIEW_BELOW:
         reasons.append("the department suggestion is below 60% confidence")
     ranked = sorted(probabilities.items(), key=lambda item: -item[1])[:3]
-    return {"text": text, "urgency": urgency, "high": urgency >= HIGH_URGENCY, "department": department,
+    return {"text": text, "urgency": urgency, "urgency_source": source, "urgency_reason": why,
+            "high": urgency >= HIGH_URGENCY, "department": department,
             "confidence": probabilities[department], "needs_review": bool(reasons), "review_reasons": reasons,
             "departments": [{"name": n, "probability": p} for n, p in ranked],
             "village": place.get("village"), "block": place.get("block"), "language": nlp.detect_language(text),

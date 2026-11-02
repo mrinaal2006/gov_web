@@ -131,7 +131,8 @@ async function openComplaint(id) {
   const note = el("textarea", { id: "u-note", style: "min-height:60px" });
   const error = el("div", { class: "error", hidden: "" });
   const history = el("ol", { class: "timeline" });
-  c.events.forEach((e) => history.append(el("li", {},
+  const scoreReason = c.events.find((e) => e.kind === "urgency");
+  c.events.filter((e) => e.kind !== "urgency").forEach((e) => history.append(el("li", {},
     el("time", { text: `${when(e.created_at)}${e.officer_email ? ` · ${e.officer_email}` : ""}` }),
     el("div", { text: e.kind === "status" ? `Status: ${e.status}` : e.kind }),
     e.public_message ? el("div", { class: "quote", text: `Citizen sees: ${e.public_message}` }) : "",
@@ -153,6 +154,7 @@ async function openComplaint(id) {
     el("div", { class: "head" }, el("h2", { text: c.id }),
       el("button", { class: "btn alt small", type: "button", text: "Close", onclick: () => box.close() })),
     el("div", { class: "quote", text: c.text }),
+    scoreReason ? el("p", { class: "note", text: `Gemini's reason for the score: ${scoreReason.internal_note}` }) : "",
     el("div", { class: "facts" },
       el("div", {}, el("small", { text: "Village" }), el("b", { text: c.village ? `${c.village}, ${c.block}` : "Unknown" })),
       el("div", {}, el("small", { text: "Urgency score (rough guide)" }), el("b", { text: c.urgency })),
@@ -184,24 +186,28 @@ async function loadTeam() {
 function drawAnalysis(r) {
   const percent = (p) => `${Math.round(p * 100)}%`;
   const fact = (label, value) => el("div", {}, el("small", { text: label }), el("b", { text: value }));
+  const byGemini = r.urgency_source === "gemini";
   const reasons = el("ul", {},
-    el("li", { text: r.serious_words.length ? `Serious words found: ${r.serious_words.join(", ")}` : "No words from the serious-word list" }),
+    byGemini ? el("li", { text: `Gemini's reason: ${r.urgency_reason}` })
+      : el("li", { text: r.serious_words.length ? `Serious words found: ${r.serious_words.join(", ")}` : "No words from the serious-word list" }),
     el("li", { text: r.village
       ? `${r.similar_7d} similar ${r.department} complaint${r.similar_7d === 1 ? "" : "s"} from ${r.village} in the last 7 days`
       : "No village recognised, so similar complaints could not be counted. Name a listed village in the text, or choose one above" }),
-    el("li", { text: "Text length and the current time of day also affect the score" }));
+    byGemini ? "" : el("li", { text: "Text length and the current time of day also affect the score" }));
   $("#a-result").replaceChildren(
     el("div", { class: "head" }, el("h2", { text: "Result" }),
       el("span", { class: `status ${r.high ? "overdue" : ""}`, text: r.high ? "High urgency (70+)" : "Below high urgency" })),
     el("div", { class: "metrics", style: "margin-top:12px" },
-      el("div", { class: `metric${r.high ? " bad" : ""}` }, el("small", { text: "Urgency score" }), el("b", { id: "a-score", text: `${r.urgency}/100` }))),
+      el("div", { class: `metric${r.high ? " bad" : ""}` }, el("small", { text: byGemini ? "Urgency score, from Gemini" : "Urgency score, from the backup model" }), el("b", { id: "a-score", text: `${r.urgency}/100` }))),
     el("div", { class: "facts" },
       fact("Department", `${r.department} (${percent(r.confidence)})`),
       fact("Other possibilities", r.departments.slice(1).map((d) => `${d.name} ${percent(d.probability)}`).join(", ")),
       fact("Village", r.village ? `${r.village}, ${r.block}` : "Not recognised")),
     r.needs_review ? el("p", { class: "alert", style: "margin:14px 0", text: `An officer would need to review a complaint like this: ${r.review_reasons.join(", and ")}.` }) : "",
     el("h3", { text: "What influenced the score", style: "margin-top:16px" }), reasons,
-    el("p", { class: "note", text: "The score is a rough guide from a model trained on simulated complaints. Use your own judgement." }));
+    el("p", { class: "note", text: byGemini
+      ? "This score is a suggestion from an AI model and has not yet been tested on real complaints. Use your own judgement."
+      : "Gemini was not available, so this is a rough guide from the backup model, trained on simulated complaints. Use your own judgement." }));
   $("#a-result").hidden = false;
 }
 
